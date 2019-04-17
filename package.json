@@ -1,0 +1,38 @@
+{
+  "name": "github-file-diff",
+  "version": "1.0.0",
+  "description": "Browser extension to view diffs of specific files on GitHub",
+  "main": "index.js",
+  "scripts": {
+    "clean": "rm -rf src/vendor{,.{css,js}} dist",
+    "vendor": "sh src/vendor.sh",
+    "build": "npm run vendor && mkdir -p dist/ext && cp -r src/{main.js,vendor.{css,js},manifest.json,icon.png} dist/ext",
+    "start": "npm run vendor && web-ext -s src run",
+    "package": "npm run clean && npm run build && npm run zip",
+    "zip": "web-ext -a dist -s dist/ext build -o"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mohd-akram/github-file-diff.git"
+  },
+  "keywords": [
+    "github",
+    "file",
+    "diff"
+  ],
+  "author": "Mohamed Akram",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mohd-akram/github-file-diff/issues"
+  },
+  "homepage": "https://github.com/mohd-akram/github-file-diff#readme",
+  "devDependencies": {
+    "web-ext": "^3.0.0"
+  },
+  "dependencies": {
+    "cash-dom": "^3.1.0",
+    "diff": "^4.0.1",
+    "diff2html": "^2.7.0",
+    "highlight.js": "^9.15.6"
+  }
+}

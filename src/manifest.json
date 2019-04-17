@@ -1,0 +1,23 @@
+{
+  "manifest_version": 2,
+  "name": "GitHub File Diff",
+  "version": "1.0.0",
+  "description": "View diffs of files and directories on GitHub.",
+  "icons": {
+    "256": "icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://github.com/*"
+      ],
+      "css": [
+        "vendor.css"
+      ],
+      "js": [
+        "vendor.js",
+        "main.js"
+      ]
+    }
+  ]
+}
