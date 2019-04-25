@@ -9,8 +9,9 @@ cp node_modules/cash-dom/dist/cash.js $dir
 echo 'jQuery = cash;' > $dir/jquery.js
 
 # diff2html
-cp node_modules/diff2html/dist/diff2html.css $dir
-cat node_modules/diff2html/dist/diff2html{,-ui}.js | sed "
+diff2html=node_modules/diff2html/dist/diff2html
+cp $diff2html.css $dir
+cat $diff2html.js $diff2html-ui.js | sed "
 s/d2h-ins/blob-code-addition/
 s/d2h-del/blob-code-deletion/
 s/d2h-file-header/file-header/
@@ -32,7 +33,8 @@ s/d2h-file-name-wrapper/file-info/
 EOF
 
 # highlight.js
-cp node_modules/highlight.js/{lib/highlight.js,styles/github.css} $dir
+highlightjs=node_modules/highlight.js
+cp $highlightjs/lib/highlight.js $highlightjs/styles/github.css $dir
 mkdir -p $dir/languages
 for f in node_modules/highlight.js/lib/languages/*; do
 	b=${f##*/}
@@ -47,5 +49,5 @@ for f in node_modules/highlight.js/lib/languages/*; do
 	" $f > $dir/languages/$b;
 done
 
-cat $dir/{github,diff2html}.css > src/vendor.css
+cat $dir/github.css $dir/diff2html.css > src/vendor.css
 cat $dir/*.js $dir/languages/*.js > src/vendor.js

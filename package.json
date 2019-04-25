@@ -4,9 +4,9 @@
   "description": "Browser extension to view diffs of specific files on GitHub",
   "main": "index.js",
   "scripts": {
-    "clean": "rm -rf src/vendor{,.{css,js}} dist",
-    "vendor": "sh src/vendor.sh",
-    "build": "npm run vendor && mkdir -p dist/ext && cp -r src/{main.js,vendor.{css,js},manifest.json,icon.png} dist/ext",
+    "clean": "rm -rf src/vendor src/vendor.css src/vendor.js dist",
+    "vendor": "cat src/vendor.sh | tr -d '\r' | sh",
+    "build": "npm run vendor && mkdir -p dist/ext && cp src/main.js src/vendor.css src/vendor.js src/manifest.json src/icon.png dist/ext",
     "start": "npm run vendor && web-ext -s src run",
     "package": "npm run clean && npm run build && npm run zip",
     "zip": "web-ext -a dist -s dist/ext build -o"
