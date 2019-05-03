@@ -9,7 +9,8 @@
     "build": "npm run vendor && mkdir -p dist/ext && cp src/main.js src/vendor.css src/vendor.js src/manifest.json src/icon.png dist/ext",
     "start": "npm run vendor && web-ext -s src run",
     "package": "npm run clean && npm run build && npm run zip",
-    "zip": "web-ext -a dist -s dist/ext build -o"
+    "zip": "web-ext -a dist -s dist/ext build -o",
+    "version": "echo '/\"version\"/ya v | n | /\"version\"/pu v | -1d | x' | ex package.json src/manifest.json && git add src/manifest.json"
   },
   "repository": {
     "type": "git",
