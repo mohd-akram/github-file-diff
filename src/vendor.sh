@@ -17,20 +17,7 @@ s/d2h-del/blob-code-deletion/
 s/d2h-file-header/file-header/
 s/d2h-file-wrapper/file/
 s/d2h-file-name-wrapper/file-info/
-" > $dir/diff2html.js && patch -p0 <<EOF
---- src/vendor/diff2html.js.orig	2019-04-17 18:44:00.000000000 +0400
-+++ src/vendor/diff2html.js	2019-04-17 18:44:34.000000000 +0400
-@@ -6687,8 +6687,7 @@
-       .replace(/>/g, '&gt;')
-       .replace(/"/g, '&quot;')
-       .replace(/'/g, '&#x27;')
--      .replace(/\//g, '&#x2F;')
--      .replace(/\t/g, '    ');
-+      .replace(/\//g, '&#x2F;');
-   };
-
-   Utils.prototype.startsWith = function(str, start) {
-EOF
+" > $dir/diff2html.js
 
 # highlight.js
 highlightjs=node_modules/highlight.js
