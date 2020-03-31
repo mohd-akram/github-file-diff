@@ -164,9 +164,9 @@ async function getDiffsElement(owner, repo, hash, prevHash, path) {
           curr = await getBlob(owner, repo, hash, p);
         const diffElement = document.createElement('div');
         const diff = Diff.createPatch(p, prev, curr);
-        const diff2htmlUi = new Diff2HtmlUI({ diff });
-        diff2htmlUi.draw($(diffElement), {
+        const diff2htmlUi = new Diff2HtmlUI(diffElement, diff, {
           rawTemplates: {
+            'file-summary-wrapper': '',
             'generic-file-path': `
               <span class="file-info">
                 <span class="d2h-file-name">{{fileDiffName}}</span>
@@ -174,7 +174,7 @@ async function getDiffsElement(owner, repo, hash, prevHash, path) {
             `
           }
         });
-        diff2htmlUi.highlightCode($(diffElement));
+        diff2htmlUi.draw();
         diffsElement.appendChild(diffElement);
       })());
     }
