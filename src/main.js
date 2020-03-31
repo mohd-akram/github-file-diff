@@ -109,16 +109,34 @@ function addClickHandler(path, element, prevElement, cache) {
 
   element.addEventListener('click', async e => {
     e.preventDefault();
-    const diffsElement = cache[key] ||
-      await getDiffsElement(owner, repo, hash, prevHash, path);
-    cache[key] = diffsElement;
+    const diffs = cache[key] || {
+      element: document.createElement('div'),
+      items: getDiffs(owner, repo, hash, prevHash, path)
+    };
+    cache[key] = diffs;
+    let loading = false;
+    const loadDiffs = async () => {
+      if (loading)
+        return;
+      loading = true;
+      const pending = [];
+      // Load 10 diffs at a time
+      for (let i = 0; i < 10; i++)
+        pending.push(diffs.items.next().then(d => {
+          if (d.value)
+            diffs.element.appendChild(d.value)
+        }));
+      await Promise.all(pending);
+      loading = false;
+    };
+    loadDiffs();
     const containerElement = document.createElement('div');
     const breadcrumb = document.querySelector('.breadcrumb').cloneNode(true);
     breadcrumb.firstChild.remove();
     containerElement.className = 'github-file-diff';
     containerElement.appendChild(getCommitElement(element));
     containerElement.appendChild(breadcrumb);
-    containerElement.appendChild(diffsElement);
+    containerElement.appendChild(diffs.element);
     existingContent.after(containerElement);
     existingContent.style.display = 'none';
     const title =
@@ -131,55 +149,45 @@ function addClickHandler(path, element, prevElement, cache) {
       if (document.title == title)
         document.title = existingTitle;
       window.removeEventListener('popstate', handler);
+      window.removeEventListener('scroll', scrollHandler);
+    };
+    const scrollHandler = () => {
+      if (
+        (window.innerHeight + window.pageYOffset) >= document.body.offsetHeight
+      )
+        loadDiffs();
     };
     window.addEventListener('popstate', handler);
+    window.addEventListener('scroll', scrollHandler);
   });
   element.classList.add('github-file-diff-link');
 }
 
-async function getDiffsElement(owner, repo, hash, prevHash, path) {
-  const diffsElement = document.createElement('div');
-  (async () => {
-    const maxCount = 25;
-    let count = 0;
-    const pending = [];
-    for await (const p of getTreeFiles(owner, repo, hash, path)) {
-      if (count == maxCount) {
-        await Promise.all(pending);
-        const el = document.createElement('div');
-        el.className = 'flash flash-warn';
-        el.innerText = `Only ${maxCount} files shown`;
-        diffsElement.appendChild(el);
-        break;
-      }
-      ++count;
-      pending.push((async () => {
-        let curr, prev = '';
-        if (prevHash) {
-          [curr, prev] = await Promise.all([
-            getBlob(owner, repo, hash, p),
-            getBlob(owner, repo, prevHash, p).catch(_ => '')
-          ]);
-        } else
-          curr = await getBlob(owner, repo, hash, p);
-        const diffElement = document.createElement('div');
-        const diff = Diff.createPatch(p, prev, curr);
-        const diff2htmlUi = new Diff2HtmlUI(diffElement, diff, {
-          rawTemplates: {
-            'file-summary-wrapper': '',
-            'generic-file-path': `
+async function* getDiffs(owner, repo, hash, prevHash, path) {
+  for await (const p of getTreeFiles(owner, repo, hash, path)) {
+    let curr, prev = '';
+    if (prevHash) {
+      [curr, prev] = await Promise.all([
+        getBlob(owner, repo, hash, p),
+        getBlob(owner, repo, prevHash, p).catch(_ => '')
+      ]);
+    } else
+      curr = await getBlob(owner, repo, hash, p);
+    const diffElement = document.createElement('div');
+    const diff = Diff.createPatch(p, prev, curr);
+    const diff2htmlUi = new Diff2HtmlUI(diffElement, diff, {
+      rawTemplates: {
+        'file-summary-wrapper': '',
+        'generic-file-path': `
               <span class="file-info">
                 <span class="d2h-file-name">{{fileDiffName}}</span>
               </span>
             `
-          }
-        });
-        diff2htmlUi.draw();
-        diffsElement.appendChild(diffElement);
-      })());
-    }
-  })();
-  return diffsElement;
+      }
+    });
+    diff2htmlUi.draw();
+    yield diffElement;
+  }
 }
 
 async function main() {
