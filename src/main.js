@@ -6,13 +6,14 @@ async function* getTreeFiles(owner, repo, hash, path) {
     return yield path;
   const html = await res.text();
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const elements = doc.querySelectorAll(
-    '.files .js-navigation-item:not(.up-tree)'
-  );
+  const elements = doc.querySelectorAll('.js-navigation-item');
   const pending = [];
   for (const element of elements) {
-    const lastCommitHash =
-      element.querySelector('.message a').href.split('/').pop();
+    const commitLink =
+      element.querySelector('.commit-message a[href*="/commit/"]');
+    if (!commitLink)
+      continue;
+    const lastCommitHash = commitLink.href.split('/').pop();
 
     const fileURL = new URL(element.querySelector('.js-navigation-open').href);
     const parts = fileURL.pathname.split('/');
@@ -60,19 +61,30 @@ async function getBlob(owner, repo, hash, path) {
 }
 
 function getCommitElement(linkElement) {
-  const commit = linkElement.closest('.commit').cloneNode(true);
+  const commit = linkElement.closest('.js-commits-list-item').cloneNode(true);
 
-  const title = commit.querySelector('.commit-title');
+  const title = commit.querySelector('p');
   title.className = 'commit-title';
-  const link = title.querySelector('a');
-  const hash = new URL(link.href).pathname.split('/').pop();
-  link.remove();
-  title.innerText = link.innerText;
+  const expander = title.querySelector('.hidden-text-expander');
+  if (expander)
+    expander.remove();
 
-  const meta = commit.querySelector('.commit-meta');
+  const description = commit.querySelector('pre');
+  if (description)
+    description.className = 'commit-desc';
+
+  const links = title.querySelectorAll('a[aria-label]');
+  for (const link of links) {
+    const text = document.createTextNode(link.innerText);
+    link.replaceWith(text);
+  }
+  const hash = new URL(links[0].href).pathname.split('/').pop();
+
+  const meta = document.createElement('div');
+  meta.className = 'commit-meta';
 
   const shaBlock = document.createElement('span');
-  shaBlock.className = 'sha-block flex-auto text-right';
+  shaBlock.className = 'sha-block';
   const sha = document.createElement('span');
   sha.className = 'sha';
   sha.innerText = hash;
@@ -84,6 +96,8 @@ function getCommitElement(linkElement) {
   const element = document.createElement('div');
   element.className = 'commit full-commit';
   element.appendChild(title);
+  if (description)
+    element.appendChild(description);
   element.appendChild(meta);
 
   return element;
@@ -204,9 +218,19 @@ async function main() {
     );
     if (!path)
       return;
-    const elements = document.querySelectorAll('.commit-title a');
-    for (const [i, element] of elements.entries())
-      addClickHandler(path, element, elements[i + 1], cache);
+    const elements = document.querySelectorAll('.js-commits-list-item');
+    for (const [i, element] of elements.entries()) {
+      const prevElement = elements[i + 1];
+      if (!prevElement)
+        continue;
+      // The commit title is broken up by issue/pr links
+      // The links to the commit have an aria-label
+      // Add the handler to all of them
+      const links = element.querySelectorAll('p a[aria-label]');
+      const prevLink = prevElement.querySelector('p a[aria-label]');
+      for (const link of links)
+        addClickHandler(path, link, prevLink, cache);
+    }
   };
 
   load();
