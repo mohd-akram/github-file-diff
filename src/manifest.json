@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "GitHub File Diff",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "View diffs of files and directories on GitHub.",
   "icons": {
     "16": "icon.png",
