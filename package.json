@@ -33,6 +33,6 @@
   "dependencies": {
     "diff": "^4.0.2",
     "diff2html": "^3.1.11",
-    "highlight.js": "^10.1.2"
+    "highlight.js": "^10.4.1"
   }
 }
