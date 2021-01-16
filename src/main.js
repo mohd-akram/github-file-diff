@@ -9,8 +9,7 @@ async function* getTreeFiles(owner, repo, hash, path) {
   const elements = doc.querySelectorAll('.js-navigation-item');
   const pending = [];
   for (const element of elements) {
-    const commitLink =
-      element.querySelector('.commit-message a[href*="/commit/"]');
+    const commitLink = element.querySelector('a[href*="/commit/"]');
     if (!commitLink)
       continue;
     const lastCommitHash = commitLink.href.split('/').pop();
