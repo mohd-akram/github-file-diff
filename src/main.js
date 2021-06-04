@@ -59,6 +59,9 @@ async function getBlob(owner, repo, hash, path) {
   return text;
 }
 
+const repoPath = location.pathname.match(/(\/[^/]+){2}/)?.[0];
+const commitLinkSelector = repoPath && `p a[href^="${repoPath}/commit/"]`;
+
 function getCommitElement(linkElement) {
   const commit = linkElement.closest('.js-commits-list-item').cloneNode(true);
 
@@ -72,7 +75,7 @@ function getCommitElement(linkElement) {
   if (description)
     description.className = 'commit-desc';
 
-  const links = title.querySelectorAll('a[aria-label]');
+  const links = title.querySelectorAll(commitLinkSelector);
   for (const link of links) {
     const text = document.createTextNode(link.innerText);
     link.replaceWith(text);
@@ -223,10 +226,9 @@ async function main() {
       if (!prevElement)
         continue;
       // The commit title is broken up by issue/pr links
-      // The links to the commit have an aria-label
       // Add the handler to all of them
-      const links = element.querySelectorAll('p a[aria-label]');
-      const prevLink = prevElement.querySelector('p a[aria-label]');
+      const links = element.querySelectorAll(commitLinkSelector);
+      const prevLink = prevElement.querySelector(commitLinkSelector);
       for (const link of links)
         addClickHandler(path, link, prevLink, cache);
     }
