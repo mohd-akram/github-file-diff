@@ -20,6 +20,21 @@ s/d2h-file-name-wrapper/file-info/g
 cp node_modules/highlight.js/styles/github.css $dir
 
 cat $dir/github.css $dir/diff2html.min.css - > src/vendor.css <<CSS
+.d2h-wrapper .file-header {
+  display: flex;
+}
+.d2h-wrapper .file-info {
+  width: 100%;
+}
+.d2h-file-collapse {
+  border: unset;
+}
+.d2h-file-collapse.d2h-selected {
+  background: unset;
+}
+.d2h-icon, .d2h-tag {
+  display: none;
+}
 .d2h-code-linenumber {
   border: unset;
   background: unset;
