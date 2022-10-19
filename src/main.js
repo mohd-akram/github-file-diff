@@ -112,7 +112,8 @@ function addClickHandler(path, element, prevElement, cache) {
   const getHash = element =>
     element && element.href.split('/').pop().split('#')[0];
 
-  const existingContent = document.querySelector('.repository-content');
+  const existingContent =
+    element.closest('.js-navigation-container').parentNode;
   const existingTitle = document.title;
 
   const parts = new URL(element.href).pathname.split('/');
@@ -149,7 +150,8 @@ function addClickHandler(path, element, prevElement, cache) {
     const containerElement = document.createElement('div');
     const breadcrumb = document.querySelector('.breadcrumb').cloneNode(true);
     breadcrumb.firstChild.remove();
-    containerElement.className = 'github-file-diff';
+    containerElement.className = existingContent.className;
+    containerElement.classList.add('github-file-diff');
     containerElement.appendChild(getCommitElement(element));
     containerElement.appendChild(breadcrumb);
     containerElement.appendChild(diffs.element);
@@ -229,7 +231,10 @@ async function main() {
 
   load();
   const observer = new MutationObserver(load);
-  observer.observe(document.body, { childList: true });
+  observer.observe(document.body, {
+    attributeFilter: ['class'],
+    childList: true
+  });
 }
 
 main();
