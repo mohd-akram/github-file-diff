@@ -54,8 +54,14 @@ async function getBlob(owner, repo, hash, path) {
     `https://github.com/${owner}/${repo}/${type}/${hash}/${path}`
   )).text();
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  const text = Array.from(doc.querySelectorAll('.blob-code'))
-    .map(c => c.innerText.replace(/^\n$/, '')).join('\n');
+  const text = JSON.parse(
+    // New GitHub file tree layout
+    // https://github.blog/changelog/2022-11-09-introducing-an-all-new-code-search-and-code-browsing-experience/
+    doc.querySelector('[data-target="react-app.embeddedData"]')?.textContent
+    ?? null
+  )?.payload.blob.rawBlob ?? Array.from(
+    doc.querySelectorAll('.blob-code'), l => l.textContent.replace('\n', '')
+  ).join('\n');
   return text;
 }
 
