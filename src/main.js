@@ -1,18 +1,34 @@
+/**
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {string} hash
+ * @param {string} path
+ */
 async function* getTreeFiles(owner, repo, hash, path) {
   const res = await fetch(
     `https://github.com/${owner}/${repo}/file-list/${hash}/${path}`
   );
-  if (res.status == 404) return yield path;
+  if (res.status == 404) {
+    yield path;
+    return;
+  }
   const html = await res.text();
   const doc = new DOMParser().parseFromString(html, "text/html");
   const elements = doc.querySelectorAll(".js-navigation-item");
+  /** @type {(Iterable<string> | AsyncIterable<string>)[]} */
   const pending = [];
   for (const element of elements) {
+    /** @type {HTMLAnchorElement | null} */
     const commitLink = element.querySelector('a[href*="/commit/"]');
     if (!commitLink) continue;
     const lastCommitHash = commitLink.href.split("/").pop();
 
-    const fileURL = new URL(element.querySelector(".js-navigation-open").href);
+    const fileURL = new URL(
+      /** @type {HTMLAnchorElement} */ (
+        element.querySelector(".js-navigation-open")
+      ).href
+    );
     const parts = fileURL.pathname.split("/");
     const owner = parts[1];
     const repo = parts[2];
@@ -25,7 +41,7 @@ async function* getTreeFiles(owner, repo, hash, path) {
     if (type == "tree") pending.push(getTreeFiles(owner, repo, hash, path));
     else if (type == "blob") pending.push([path]);
   }
-  for (const p of await Promise.all(pending)) yield* p;
+  for (const p of pending) yield* p;
 }
 
 const markups = [
@@ -48,6 +64,13 @@ const markups = [
 
 const markupRegex = new RegExp(`\\.(${markups.join("|")})$`);
 
+/**
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {string} hash
+ * @param {string} path
+ */
 async function getBlob(owner, repo, hash, path) {
   const type = markupRegex.test(path) ? "blame" : "blob";
   const text = await (
@@ -74,8 +97,14 @@ async function getBlob(owner, repo, hash, path) {
 const repoPath = location.pathname.match(/(\/[^/]+){2}/)?.[0];
 const commitLinkSelector = repoPath && `p a[href^="${repoPath}/commit/"]`;
 
+/**
+ *
+ * @param {Element} linkElement
+ */
 function getCommitElement(linkElement) {
-  const commit = linkElement.closest(".js-commits-list-item").cloneNode(true);
+  const commit = /** @type {Element} */ (
+    linkElement.closest(".js-commits-list-item").cloneNode(true)
+  );
 
   const title = commit.querySelector("p");
   title.className = "commit-title";
@@ -85,6 +114,7 @@ function getCommitElement(linkElement) {
   const description = commit.querySelector("pre");
   if (description) description.className = "commit-desc";
 
+  /** @type {NodeListOf<HTMLAnchorElement>} */
   const links = title.querySelectorAll(commitLinkSelector);
   for (const link of links) {
     const text = document.createTextNode(link.innerText);
@@ -114,15 +144,22 @@ function getCommitElement(linkElement) {
   return element;
 }
 
+/**
+ *
+ * @param {string} path
+ * @param {HTMLAnchorElement} element
+ * @param {HTMLAnchorElement} prevElement
+ * @param {Record<string, { element: HTMLElement, items: ReturnType<typeof getDiffs> }>} cache
+ */
 function addClickHandler(path, element, prevElement, cache) {
   if (!path || element.classList.contains("github-file-diff-link")) return;
 
-  const getHash = (element) =>
+  const getHash = (/** @type {HTMLAnchorElement} */ element) =>
     element && element.href.split("/").pop().split("#")[0];
 
   const existingContent = element.closest(
     ".js-navigation-container"
-  ).parentNode;
+  ).parentElement;
   const existingTitle = document.title;
 
   const parts = new URL(element.href).pathname.split("/");
@@ -189,6 +226,14 @@ function addClickHandler(path, element, prevElement, cache) {
   element.classList.add("github-file-diff-link");
 }
 
+/**
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {string} hash
+ * @param {string} prevHash
+ * @param {string} path
+ */
 async function* getDiffs(owner, repo, hash, prevHash, path) {
   for await (const p of getTreeFiles(owner, repo, hash, path)) {
     let curr,
@@ -210,6 +255,7 @@ async function* getDiffs(owner, repo, hash, prevHash, path) {
 }
 
 async function main() {
+  /** @type {Record<string, any>} */
   const cache = {};
 
   const load = () => {
@@ -232,7 +278,9 @@ async function main() {
       if (!prevElement) continue;
       // The commit title is broken up by issue/pr links
       // Add the handler to all of them
+      /** @type {NodeListOf<HTMLAnchorElement>} */
       const links = element.querySelectorAll(commitLinkSelector);
+      /** @type {HTMLAnchorElement} */
       const prevLink = prevElement.querySelector(commitLinkSelector);
       for (const link of links) addClickHandler(path, link, prevLink, cache);
     }
