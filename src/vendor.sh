@@ -9,6 +9,7 @@ diff2html=node_modules/diff2html/bundles
 cp $diff2html/css/diff2html.min.css $dir
 cat $diff2html/js/diff2html.min.js $diff2html/js/diff2html-ui.min.js | sed "
 s/d2h-info/blob-code-hunk/g
+s/d2h-cntx/blob-code-context/g
 s/d2h-ins/blob-code-addition/g
 s/d2h-del/blob-code-deletion/g
 s/d2h-file-header/file-header/g
@@ -26,6 +27,11 @@ cat $dir/github.css $dir/diff2html.min.css - > src/vendor.css <<CSS
 .d2h-wrapper .file-info {
   width: 100%;
 }
+.d2h-wrapper .blob-code-context,
+.d2h-wrapper .blob-code-addition,
+.d2h-wrapper .blob-code-deletion {
+  padding: unset;
+}
 .d2h-file-collapse {
   border: unset;
 }
@@ -38,7 +44,13 @@ cat $dir/github.css $dir/diff2html.min.css - > src/vendor.css <<CSS
 .d2h-code-linenumber {
   border: unset;
   background: unset;
-  color: var(--color-diff-blob-num-text);
+  color: var(--color-fg-subtle);
+}
+.d2h-code-linenumber.blob-code-addition {
+  color: var(--color-diff-blob-addition-num-text);
+}
+.d2h-code-linenumber.blob-code-deletion {
+  color: var(--color-diff-blob-deletion-num-text);
 }
 .d2h-code-line-ctn {
   vertical-align: unset;
