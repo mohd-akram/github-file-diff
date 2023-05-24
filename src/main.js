@@ -50,21 +50,25 @@ const markupRegex = new RegExp(`\\.(${markups.join("|")})$`);
 
 async function getBlob(owner, repo, hash, path) {
   const type = markupRegex.test(path) ? "blame" : "blob";
-  const html = await (
+  const text = await (
     await fetch(`https://github.com/${owner}/${repo}/${type}/${hash}/${path}`)
   ).text();
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const text =
-    JSON.parse(
-      // New GitHub file tree layout
-      // https://github.blog/changelog/2022-11-09-introducing-an-all-new-code-search-and-code-browsing-experience/
-      doc.querySelector('[data-target="react-app.embeddedData"]')
-        ?.textContent ?? null
-    )?.payload.blob.rawBlob ??
-    Array.from(doc.querySelectorAll(".blob-code"), (l) =>
-      l.textContent.replace("\n", "")
-    ).join("\n");
-  return text;
+  try {
+    return JSON.parse(text).payload.blob.rawBlob;
+  } catch (e) {
+    const doc = new DOMParser().parseFromString(text, "text/html");
+    return (
+      JSON.parse(
+        // New GitHub file tree layout
+        // https://github.blog/changelog/2022-11-09-introducing-an-all-new-code-search-and-code-browsing-experience/
+        doc.querySelector('[data-target="react-app.embeddedData"]')
+          ?.textContent ?? null
+      )?.payload.blob.rawBlob ??
+      Array.from(doc.querySelectorAll(".blob-code"), (l) =>
+        l.textContent.replace("\n", "")
+      ).join("\n")
+    );
+  }
 }
 
 const repoPath = location.pathname.match(/(\/[^/]+){2}/)?.[0];
