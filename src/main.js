@@ -44,26 +44,6 @@ async function* getTreeFiles(owner, repo, hash, path) {
   for (const p of pending) yield* p;
 }
 
-const markups = [
-  "markdown",
-  "mdown",
-  "mkdn",
-  "md",
-  "textile",
-  "rdoc",
-  "org",
-  "creole",
-  "mediawiki",
-  "wiki",
-  "rst",
-  "asciidoc",
-  "adoc",
-  "asc",
-  "pod",
-];
-
-const markupRegex = new RegExp(`\\.(${markups.join("|")})$`);
-
 /**
  *
  * @param {string} owner
@@ -72,9 +52,10 @@ const markupRegex = new RegExp(`\\.(${markups.join("|")})$`);
  * @param {string} path
  */
 async function getBlob(owner, repo, hash, path) {
-  const type = markupRegex.test(path) ? "blame" : "blob";
   const text = await (
-    await fetch(`https://github.com/${owner}/${repo}/${type}/${hash}/${path}`)
+    await fetch(
+      `https://github.com/${owner}/${repo}/blob/${hash}/${path}?plain=1`
+    )
   ).text();
   try {
     return JSON.parse(text).payload.blob.rawBlob;
