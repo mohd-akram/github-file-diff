@@ -58,7 +58,7 @@ async function getBlob(owner, repo, hash, path) {
     )
   ).text();
   try {
-    return JSON.parse(text).payload.blob.rawBlob;
+    return JSON.parse(text).payload.blob.rawLines.join("\n");
   } catch (e) {
     const doc = new DOMParser().parseFromString(text, "text/html");
     return (
@@ -67,7 +67,7 @@ async function getBlob(owner, repo, hash, path) {
         // https://github.blog/changelog/2022-11-09-introducing-an-all-new-code-search-and-code-browsing-experience/
         doc.querySelector('[data-target="react-app.embeddedData"]')
           ?.textContent ?? null
-      )?.payload.blob.rawBlob ??
+      )?.payload.blob.rawLines.join("\n") ??
       Array.from(doc.querySelectorAll(".blob-code"), (l) =>
         l.textContent.replace("\n", "")
       ).join("\n")
