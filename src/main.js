@@ -242,21 +242,14 @@ async function main() {
   const load = () => {
     const parts = location.pathname.split("/");
     if (parts[3] != "commits") return;
-    const path =
-      parts.slice(5).join("/") ||
-      decodeURIComponent(
-        (
-          location.search
-            .slice(1)
-            .split("&")
-            .filter((p) => p.startsWith("path%5B%5D="))[0] || ""
-        ).slice("path%5B%5D=".length)
-      );
-    if (!path) return;
     const elements = document.querySelectorAll(".js-commits-list-item");
     for (const [i, element] of elements.entries()) {
       const prevElement = elements[i + 1];
       if (!prevElement) continue;
+      /** @type {HTMLAnchorElement | null} */
+      const link = element.querySelector("[id^=history-point]");
+      if (!link) continue;
+      const path = new URL(link.href).pathname.split("/").slice(5).join("/");
       // The commit title is broken up by issue/pr links
       // Add the handler to all of them
       /** @type {NodeListOf<HTMLAnchorElement>} */
