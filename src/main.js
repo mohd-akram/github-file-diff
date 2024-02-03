@@ -22,7 +22,7 @@ async function* getTreeFiles(owner, repo, hash, path) {
     /** @type {HTMLAnchorElement | null} */
     const commitLink = element.querySelector('a[href*="/commit/"]');
     if (!commitLink) continue;
-    const lastCommitHash = commitLink.href.split("/").pop();
+    const lastCommitHash = getHash(commitLink);
 
     const fileURL = new URL(
       /** @type {HTMLAnchorElement} */ (
@@ -62,12 +62,7 @@ async function getBlob(owner, repo, hash, path) {
   } catch (e) {
     const doc = new DOMParser().parseFromString(text, "text/html");
     return (
-      JSON.parse(
-        // New GitHub file tree layout
-        // https://github.blog/changelog/2022-11-09-introducing-an-all-new-code-search-and-code-browsing-experience/
-        doc.querySelector('[data-target="react-app.embeddedData"]')
-          ?.textContent ?? null
-      )?.payload.blob.rawLines.join("\n") ??
+      getData()?.payload.blob.rawLines.join("\n") ??
       Array.from(doc.querySelectorAll(".blob-code"), (l) =>
         l.textContent.replace("\n", "")
       ).join("\n")
@@ -75,36 +70,78 @@ async function getBlob(owner, repo, hash, path) {
   }
 }
 
-const repoPath = location.pathname.match(/(\/[^/]+){2}/)?.[0];
-const commitLinkSelector = repoPath && `p a[href^="${repoPath}/commit/"]`;
+function getData() {
+  return /** @type {{ payload: { blob: { rawLines: string[] }, commitGroups: { commits: { oid: string, bodyMessageHtml: string }[] }[] }}} */ (
+    JSON.parse(
+      document.querySelector('[data-target="react-app.embeddedData"]')
+        ?.textContent ?? null
+    )
+  );
+}
+
+/**
+ *
+ * @param {ReturnType<typeof getData>} data
+ */
+function getCommits(data) {
+  if (!data) return;
+  return data.payload.commitGroups.flatMap((g) => g.commits);
+}
+
+/**
+ *
+ * @param {Element} element
+ */
+function getCommitLinks(element) {
+  const repoPath = location.pathname.match(/(\/[^/]+){2}/)[0];
+  const commitLinkSelector = `a[href^="${repoPath}/commit/"]`;
+  return /** @type {NodeListOf<HTMLAnchorElement>} */ (
+    element.querySelectorAll(commitLinkSelector)
+  );
+}
 
 /**
  *
  * @param {Element} linkElement
+ * @param {ReturnType<typeof getCommits>[0]} info
  */
-function getCommitElement(linkElement) {
+function getCommitElement(linkElement, info) {
   const commit = /** @type {Element} */ (
-    linkElement.closest(".js-commits-list-item").cloneNode(true)
+    linkElement.closest("[data-testid=commit-row-item]").cloneNode(true)
   );
 
-  const title = commit.querySelector("p");
-  title.className = "commit-title";
-  const expander = title.querySelector(".hidden-text-expander");
+  const title = commit.querySelector("h4");
+  title.className = "commit-title pb-2";
+  const expander = title.querySelector(".octicon-ellipsis");
   if (expander) expander.remove();
 
-  const description = commit.querySelector("pre");
-  if (description) description.className = "commit-desc";
+  const description = info?.bodyMessageHtml;
+  let desc;
+  if (description) {
+    desc = document.createElement("div");
+    desc.className = "commit-desc";
+    const pre = document.createElement("pre");
+    pre.innerHTML = description;
+    desc.appendChild(pre);
+  }
 
-  /** @type {NodeListOf<HTMLAnchorElement>} */
-  const links = title.querySelectorAll(commitLinkSelector);
+  const links = getCommitLinks(title);
   for (const link of links) {
     const text = document.createTextNode(link.innerText);
     link.replaceWith(text);
   }
-  const hash = new URL(links[0].href).pathname.split("/").pop();
+  const hash = getHash(links[0]);
 
   const meta = document.createElement("div");
-  meta.className = "commit-meta";
+  meta.className =
+    "commit-meta p-2 d-flex flex-wrap gap-3 flex-column flex-md-row";
+
+  const metaDesc = /** @type {Element} */ (
+    commit
+      .querySelector("[data-testid=listview-item-description]")
+      .cloneNode(true)
+  );
+  metaDesc.className = "flex-1";
 
   const shaBlock = document.createElement("span");
   shaBlock.className = "sha-block";
@@ -114,15 +151,25 @@ function getCommitElement(linkElement) {
   shaBlock.appendChild(document.createTextNode("commit "));
   shaBlock.appendChild(sha);
 
+  meta.appendChild(metaDesc);
   meta.appendChild(shaBlock);
 
   const element = document.createElement("div");
   element.className = "commit full-commit";
   element.appendChild(title);
-  if (description) element.appendChild(description);
+  if (desc) element.appendChild(desc);
   element.appendChild(meta);
 
   return element;
+}
+
+/**
+ *
+ * @param {HTMLAnchorElement} element
+ */
+function getHash(element) {
+  if (!element) return;
+  return element.href.split("/").pop().split("#")[0];
 }
 
 /**
@@ -131,16 +178,12 @@ function getCommitElement(linkElement) {
  * @param {HTMLAnchorElement} element
  * @param {HTMLAnchorElement} prevElement
  * @param {Record<string, { element: HTMLElement, items: ReturnType<typeof getDiffs> }>} cache
+ * @param {ReturnType<typeof getCommits>[0]} info
  */
-function addClickHandler(path, element, prevElement, cache) {
+function addClickHandler(path, element, prevElement, cache, info) {
   if (!path || element.classList.contains("github-file-diff-link")) return;
 
-  const getHash = (/** @type {HTMLAnchorElement} */ element) =>
-    element && element.href.split("/").pop().split("#")[0];
-
-  const existingContent = element.closest(
-    ".js-navigation-container"
-  ).parentElement;
+  const existingContent = element.closest("[data-hpc=true]").parentElement;
   const existingTitle = document.title;
 
   const parts = new URL(element.href).pathname.split("/");
@@ -175,11 +218,12 @@ function addClickHandler(path, element, prevElement, cache) {
     };
     loadDiffs();
     const containerElement = document.createElement("div");
-    const breadcrumb = document.querySelector(".breadcrumb").cloneNode(true);
-    breadcrumb.firstChild.remove();
+    const breadcrumb = document
+      .querySelector("[aria-label=Breadcrumbs]")
+      .cloneNode(true);
     containerElement.className = existingContent.className;
     containerElement.classList.add("github-file-diff");
-    containerElement.appendChild(getCommitElement(element));
+    containerElement.appendChild(getCommitElement(element, info));
     containerElement.appendChild(breadcrumb);
     containerElement.appendChild(diffs.element);
     existingContent.after(containerElement);
@@ -239,24 +283,27 @@ async function main() {
   /** @type {Record<string, any>} */
   const cache = {};
 
+  const commits = getCommits(getData());
+
   const load = () => {
     const parts = location.pathname.split("/");
     if (parts[3] != "commits") return;
-    const elements = document.querySelectorAll(".js-commits-list-item");
+    const elements = document.querySelectorAll("[data-testid=commit-row-item]");
     for (const [i, element] of elements.entries()) {
       const prevElement = elements[i + 1];
       if (!prevElement) continue;
       /** @type {HTMLAnchorElement | null} */
-      const link = element.querySelector("[id^=history-point]");
+      const link = element.querySelector("[data-testid=commit-row-view-code]");
       if (!link) continue;
       const path = new URL(link.href).pathname.split("/").slice(5).join("/");
       // The commit title is broken up by issue/pr links
       // Add the handler to all of them
-      /** @type {NodeListOf<HTMLAnchorElement>} */
-      const links = element.querySelectorAll(commitLinkSelector);
-      /** @type {HTMLAnchorElement} */
-      const prevLink = prevElement.querySelector(commitLinkSelector);
-      for (const link of links) addClickHandler(path, link, prevLink, cache);
+      const links = getCommitLinks(element);
+      const prevLink = getCommitLinks(prevElement)[0];
+      const hash = getHash(links[0]);
+      const info = commits?.find((c) => c.oid == hash);
+      for (const link of links)
+        addClickHandler(path, link, prevLink, cache, info);
     }
   };
 
