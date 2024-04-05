@@ -31,7 +31,7 @@
     "web-ext": "^7.11.0"
   },
   "dependencies": {
-    "diff": "^5.1.0",
+    "diff": "^5.2.0",
     "diff2html": "^3.4.47",
     "highlight.js": "^11.9.0"
   }
