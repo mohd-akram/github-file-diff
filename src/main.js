@@ -54,7 +54,8 @@ async function* getTreeFiles(owner, repo, hash, path) {
 async function getBlob(owner, repo, hash, path) {
   const text = await (
     await fetch(
-      `https://github.com/${owner}/${repo}/blob/${hash}/${path}?plain=1`
+      `https://github.com/${owner}/${repo}/blob/${hash}/${path}?plain=1`,
+      { headers: { Accept: "application/json" } }
     )
   ).text();
   try {
@@ -62,7 +63,7 @@ async function getBlob(owner, repo, hash, path) {
   } catch (e) {
     const doc = new DOMParser().parseFromString(text, "text/html");
     return (
-      getData()?.payload.blob.rawLines.join("\n") ??
+      getData(doc)?.payload.blob.rawLines.join("\n") ??
       Array.from(doc.querySelectorAll(".blob-code"), (l) =>
         l.textContent.replace("\n", "")
       ).join("\n")
@@ -70,10 +71,14 @@ async function getBlob(owner, repo, hash, path) {
   }
 }
 
-function getData() {
+/**
+ *
+ * @param {Document} doc
+ */
+function getData(doc) {
   return /** @type {{ payload: { blob: { rawLines: string[] }, commitGroups: { commits: { oid: string, bodyMessageHtml: string }[] }[] }}} */ (
     JSON.parse(
-      document.querySelector('[data-target="react-app.embeddedData"]')
+      doc.querySelector('[data-target="react-app.embeddedData"]')
         ?.textContent ?? null
     )
   );
@@ -283,7 +288,7 @@ async function main() {
   /** @type {Record<string, any>} */
   const cache = {};
 
-  const commits = getCommits(getData());
+  const commits = getCommits(getData(document));
 
   const load = () => {
     const parts = location.pathname.split("/");
