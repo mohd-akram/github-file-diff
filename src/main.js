@@ -288,11 +288,10 @@ async function main() {
   /** @type {Record<string, any>} */
   const cache = {};
 
-  const commits = getCommits(getData(document));
-
   const load = () => {
     const parts = location.pathname.split("/");
     if (parts[3] != "commits") return;
+    const commits = getCommits(getData(document));
     const elements = document.querySelectorAll("[data-testid=commit-row-item]");
     for (const [i, element] of elements.entries()) {
       const prevElement = elements[i + 1];
