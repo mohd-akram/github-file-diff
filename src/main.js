@@ -197,7 +197,7 @@ function addClickHandler(path, element, prevElement, cache, info) {
   const message = element.innerText;
   const hash = getHash(element);
   const prevHash = getHash(prevElement);
-  const key = `${owner}/repo@${hash}:${path}`;
+  const key = `${owner}/${repo}@${hash}:${path}`;
 
   element.addEventListener("click", async (e) => {
     e.preventDefault();
@@ -285,12 +285,11 @@ async function* getDiffs(owner, repo, hash, prevHash, path) {
 }
 
 async function main() {
-  /** @type {Record<string, any>} */
-  const cache = {};
-
   const load = () => {
     const parts = location.pathname.split("/");
     if (parts[3] != "commits") return;
+    /** @type {Record<string, any>} */
+    const cache = {};
     const commits = getCommits(getData(document));
     const elements = document.querySelectorAll("[data-testid=commit-row-item]");
     for (const [i, element] of elements.entries()) {
