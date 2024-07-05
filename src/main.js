@@ -143,7 +143,7 @@ function getCommitElement(linkElement, info) {
 
   const metaDesc = /** @type {Element} */ (
     commit
-      .querySelector("[data-testid=listview-item-description]")
+      .querySelector("[data-testid=list-view-item-description]")
       .cloneNode(true)
   );
   metaDesc.className = "flex-1";
