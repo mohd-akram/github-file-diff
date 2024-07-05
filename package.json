@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/mohd-akram/github-file-diff#readme",
   "devDependencies": {
-    "web-ext": "^7.11.0"
+    "web-ext": "^8.2.0"
   },
   "dependencies": {
     "diff": "^5.2.0",
