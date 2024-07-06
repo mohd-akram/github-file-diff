@@ -9,6 +9,11 @@
     "128": "icon.png",
     "256": "icon.png"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{6b9721da-5fa4-4e58-a67b-5eb9294665e2}"
+    }
+  },
   "content_scripts": [
     {
       "matches": ["https://github.com/*"],
