@@ -6,40 +6,39 @@
  * @param {string} path
  */
 async function* getTreeFiles(owner, repo, hash, path) {
-  const res = await fetch(
-    `https://github.com/${owner}/${repo}/file-list/${hash}/${path}`
+  const [treeRes, treeCommitInfoRes] = await Promise.all(
+    ["tree", "tree-commit-info"].map((t) =>
+      fetch(`https://github.com/${owner}/${repo}/${t}/${hash}/${path}`, {
+        headers: { Accept: "application/json" },
+      })
+    )
   );
-  if (res.status == 404) {
+  if (treeRes.status == 404) {
     yield path;
     return;
   }
-  const html = await res.text();
-  const doc = new DOMParser().parseFromString(html, "text/html");
-  const elements = doc.querySelectorAll(".js-navigation-item");
+  /**
+   * @type {{
+   *  payload: {
+   *    tree: {  items: { contentType: 'file' | 'directory', name: string }[] }
+   *  }
+   * }}
+   */
+  const {
+    payload: {
+      tree: { items },
+    },
+  } = await treeRes.json();
+  /** @type {Record<string, { oid: string }>} */
+  const files = await treeCommitInfoRes.json();
   /** @type {(Iterable<string> | AsyncIterable<string>)[]} */
   const pending = [];
-  for (const element of elements) {
-    /** @type {HTMLAnchorElement | null} */
-    const commitLink = element.querySelector('a[href*="/commit/"]');
-    if (!commitLink) continue;
-    const lastCommitHash = getHash(commitLink);
-
-    const fileURL = new URL(
-      /** @type {HTMLAnchorElement} */ (
-        element.querySelector(".js-navigation-open")
-      ).href
-    );
-    const parts = fileURL.pathname.split("/");
-    const owner = parts[1];
-    const repo = parts[2];
-    const type = parts[3];
-    const hash = parts[4];
-
-    if (hash != lastCommitHash) continue;
-
-    const path = parts.slice(5).join("/");
-    if (type == "tree") pending.push(getTreeFiles(owner, repo, hash, path));
-    else if (type == "blob") pending.push([path]);
+  for (const { name, contentType: type } of items) {
+    const { oid } = files[name];
+    if (oid != hash) continue;
+    const p = `${path}/${name}`;
+    if (type == "directory") pending.push(getTreeFiles(owner, repo, oid, p));
+    else if (type == "file") pending.push([p]);
   }
   for (const p of pending) yield* p;
 }
@@ -142,11 +141,12 @@ function getCommitElement(linkElement, info) {
     "commit-meta p-2 d-flex flex-wrap gap-3 flex-column flex-md-row";
 
   const metaDesc = /** @type {Element} */ (
-    commit
-      .querySelector("[data-testid=list-view-item-description]")
-      .cloneNode(true)
+    commit.querySelector("[data-testid=author-avatar]")?.cloneNode(true)
   );
-  metaDesc.className = "flex-1";
+  if (metaDesc) {
+    metaDesc.className = "flex-1";
+    meta.appendChild(metaDesc);
+  }
 
   const shaBlock = document.createElement("span");
   shaBlock.className = "sha-block";
@@ -156,7 +156,6 @@ function getCommitElement(linkElement, info) {
   shaBlock.appendChild(document.createTextNode("commit "));
   shaBlock.appendChild(sha);
 
-  meta.appendChild(metaDesc);
   meta.appendChild(shaBlock);
 
   const element = document.createElement("div");
