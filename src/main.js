@@ -29,7 +29,8 @@ async function* getTreeFiles(owner, repo, hash, path) {
       })
     )
   );
-  if (!treeRes.ok || !treeCommitInfoRes.ok) return;
+  if (!treeRes.ok || !treeCommitInfoRes.ok)
+    throw new Error("Failed to get tree");
   /**
    * @type {{
    *  payload: {
@@ -296,36 +297,55 @@ function addClickHandler(path, element, prevElement, cache, info) {
  * @param {string | null} prevHash
  * @param {string} path
  */
+async function getDiff(owner, repo, hash, prevHash, path) {
+  /** @type {string} */
+  let curr;
+  /** @type {string} */
+  let prev;
+
+  [curr, prev] = await Promise.all([
+    getBlob(owner, repo, hash, path),
+    // If this is a new file, it won't exist in the previous commit
+    prevHash ? getBlob(owner, repo, prevHash, path).catch(() => "") : "",
+  ]);
+
+  const diffElement = document.createElement("div");
+  const diff = Diff.createPatch(path, prev, curr);
+  const diff2htmlUi = new Diff2HtmlUI(diffElement, diff, {
+    drawFileList: false,
+  });
+  diff2htmlUi.draw();
+  const fileName = /** @type {HTMLElement} */ (
+    diffElement.querySelector(".d2h-file-name")
+  );
+  const fileLink = document.createElement("a");
+  fileLink.className = fileName.className;
+  fileLink.classList.add("Link--primary");
+  fileLink.href = getPathURL(owner, repo, hash, path, "blob");
+  fileLink.textContent = fileName.textContent;
+  fileName.replaceWith(fileLink);
+  return diffElement;
+}
+
+/**
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {string} hash
+ * @param {string | null} prevHash
+ * @param {string} path
+ */
 async function* getDiffs(owner, repo, hash, prevHash, path) {
-  for await (const p of getTreeFiles(owner, repo, hash, path)) {
-    /** @type {string} */
-    let curr;
-    /** @type {string} */
-    let prev;
-    try {
-      [curr, prev] = await Promise.all([
-        getBlob(owner, repo, hash, p),
-        prevHash ? getBlob(owner, repo, prevHash, p).catch(() => "") : "",
-      ]);
-    } catch {
-      continue;
+  try {
+    // Assume this is a directory
+    for await (const p of getTreeFiles(owner, repo, hash, path)) {
+      try {
+        yield getDiff(owner, repo, hash, prevHash, p);
+      } catch {}
     }
-    const diffElement = document.createElement("div");
-    const diff = Diff.createPatch(p, prev, curr);
-    const diff2htmlUi = new Diff2HtmlUI(diffElement, diff, {
-      drawFileList: false,
-    });
-    diff2htmlUi.draw();
-    const fileName = /** @type {HTMLElement} */ (
-      diffElement.querySelector(".d2h-file-name")
-    );
-    const fileLink = document.createElement("a");
-    fileLink.className = fileName.className;
-    fileLink.classList.add("Link--primary");
-    fileLink.href = getPathURL(owner, repo, hash, p, "blob");
-    fileLink.textContent = fileName.textContent;
-    fileName.replaceWith(fileLink);
-    yield diffElement;
+  } catch {
+    // This is actually a file
+    yield getDiff(owner, repo, hash, prevHash, path);
   }
 }
 
