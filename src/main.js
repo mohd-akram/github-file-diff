@@ -209,7 +209,7 @@ function getHash(element) {
  *
  * @param {string} path
  * @param {HTMLAnchorElement} element
- * @param {HTMLAnchorElement | null} prevElement
+ * @param {HTMLAnchorElement} prevElement
  * @param {Record<string, {
  *  element: HTMLElement, items: ReturnType<typeof getDiffs>
  * }>} cache
@@ -229,7 +229,7 @@ function addClickHandler(path, element, prevElement, cache, info) {
   const repo = parts[2];
   const message = element.innerText;
   const hash = getHash(element);
-  const prevHash = prevElement ? getHash(prevElement) : null;
+  const prevHash = getHash(prevElement);
   const key = `${owner}/${repo}@${hash}:${path}`;
 
   element.addEventListener("click", async (e) => {
@@ -294,7 +294,7 @@ function addClickHandler(path, element, prevElement, cache, info) {
  * @param {string} owner
  * @param {string} repo
  * @param {string} hash
- * @param {string | null} prevHash
+ * @param {string} prevHash
  * @param {string} path
  */
 async function getDiff(owner, repo, hash, prevHash, path) {
@@ -306,7 +306,7 @@ async function getDiff(owner, repo, hash, prevHash, path) {
   [curr, prev] = await Promise.all([
     getBlob(owner, repo, hash, path),
     // If this is a new file, it won't exist in the previous commit
-    prevHash ? getBlob(owner, repo, prevHash, path).catch(() => "") : "",
+    getBlob(owner, repo, prevHash, path).catch(() => ""),
   ]);
 
   const diffElement = document.createElement("div");
@@ -332,7 +332,7 @@ async function getDiff(owner, repo, hash, prevHash, path) {
  * @param {string} owner
  * @param {string} repo
  * @param {string} hash
- * @param {string | null} prevHash
+ * @param {string} prevHash
  * @param {string} path
  */
 async function* getDiffs(owner, repo, hash, prevHash, path) {
