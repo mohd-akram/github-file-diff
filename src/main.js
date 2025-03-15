@@ -29,10 +29,7 @@ async function* getTreeFiles(owner, repo, hash, path) {
       })
     )
   );
-  if (treeRes.status == 404) {
-    yield path;
-    return;
-  }
+  if (!treeRes.ok || !treeCommitInfoRes.ok) return;
   /**
    * @type {{
    *  payload: {
@@ -67,24 +64,23 @@ async function* getTreeFiles(owner, repo, hash, path) {
  * @param {string} path
  */
 async function getBlob(owner, repo, hash, path) {
-  const text = await (
-    await fetch(
-      `${getPathURL(owner, repo, hash, path, "blob")}?${new URLSearchParams({
-        plain: "1",
-      })}`,
-      { headers: { Accept: "application/json" } }
-    )
-  ).text();
+  const res = await fetch(
+    `${getPathURL(owner, repo, hash, path, "blob")}?${new URLSearchParams({
+      plain: "1",
+    })}`,
+    { headers: { Accept: "application/json" } }
+  );
+  if (!res.ok) throw new Error("Failed to get blob");
+  const text = await res.text();
   try {
-    return JSON.parse(text).payload.blob.rawLines.join("\n");
+    /** @type {Exclude<ReturnType<typeof getData>, undefined>} */
+    const data = JSON.parse(text);
+    return data.payload.blob.rawLines.join("\n");
   } catch (e) {
     const doc = new DOMParser().parseFromString(text, "text/html");
-    return (
-      getData(doc)?.payload.blob.rawLines.join("\n") ??
-      Array.from(doc.querySelectorAll(".blob-code"), (l) =>
-        l.textContent.replace("\n", "")
-      ).join("\n")
-    );
+    const data = getData(doc);
+    if (!data) throw new Error("Failed to get blob");
+    return data.payload.blob.rawLines.join("\n");
   }
 }
 
@@ -93,19 +89,24 @@ async function getBlob(owner, repo, hash, path) {
  * @param {Document} doc
  */
 function getData(doc) {
-  /**
-   * @type {{
-   *  payload: {
-   *    blob: { rawLines: string[] },
-   *    commitGroups: { commits: { oid: string, bodyMessageHtml: string }[] }[]
-   *  }
-   * }}
-   */
-  const data = JSON.parse(
-    doc.querySelector('[data-target="react-app.embeddedData"]')?.textContent ??
-      null
-  );
-  return data;
+  const text = doc.querySelector(
+    '[data-target="react-app.embeddedData"]'
+  )?.textContent;
+
+  if (text) {
+    /**
+     * @type {{
+     *  payload: {
+     *    blob: { rawLines: string[] },
+     *    commitGroups: { commits: { oid: string, bodyMessageHtml: string }[] }[]
+     *  }
+     * }}
+     */
+    const data = JSON.parse(text);
+    return data;
+  }
+
+  return;
 }
 
 /**
@@ -113,16 +114,17 @@ function getData(doc) {
  * @param {ReturnType<typeof getData>} data
  */
 function getCommits(data) {
-  if (!data) return;
-  return data.payload.commitGroups.flatMap((g) => g.commits);
+  return data?.payload.commitGroups.flatMap((g) => g.commits);
 }
 
 /**
  *
- * @param {Element} element
+ * @param {HTMLElement} element
  */
 function getCommitLinks(element) {
-  const repoPath = location.pathname.match(/(\/[^/]+){2}/)[0];
+  const repoPath = /** @type {RegExpMatchArray} */ (
+    location.pathname.match(/(\/[^/]+){2}/)
+  )[0];
   const commitLinkSelector = `a[href^="${repoPath}/commit/"]`;
   return /** @type {NodeListOf<HTMLAnchorElement>} */ (
     element.querySelectorAll(commitLinkSelector)
@@ -131,15 +133,17 @@ function getCommitLinks(element) {
 
 /**
  *
- * @param {Element} linkElement
- * @param {ReturnType<typeof getCommits>[0]} info
+ * @param {HTMLElement} linkElement
+ * @param {Exclude<ReturnType<typeof getCommits>, undefined>[0]} [info]
  */
 function getCommitElement(linkElement, info) {
-  const commit = /** @type {Element} */ (
-    linkElement.closest("[data-testid=commit-row-item]").cloneNode(true)
+  const commit = /** @type {HTMLElement} */ (
+    /** @type {HTMLElement} */ (
+      linkElement.closest("[data-testid=commit-row-item]")
+    ).cloneNode(true)
   );
 
-  const title = commit.querySelector("h4");
+  const title = /** @type {HTMLHeadingElement} */ (commit.querySelector("h4"));
   title.className = "commit-title pb-2";
   const expander = title.querySelector(".octicon-ellipsis");
   if (expander) expander.remove();
@@ -165,7 +169,7 @@ function getCommitElement(linkElement, info) {
   meta.className =
     "commit-meta p-2 d-flex flex-wrap gap-3 flex-column flex-md-row";
 
-  const metaDesc = /** @type {Element} */ (
+  const metaDesc = /** @type {HTMLElement | undefined} */ (
     commit.querySelector("[data-testid=author-avatar]")?.cloneNode(true)
   );
   if (metaDesc) {
@@ -197,24 +201,26 @@ function getCommitElement(linkElement, info) {
  * @param {HTMLAnchorElement} element
  */
 function getHash(element) {
-  if (!element) return;
-  return element.href.split("/").pop().split("#")[0];
+  return /** @type {string} */ (element.href.split("/").pop()).split("#")[0];
 }
 
 /**
  *
  * @param {string} path
  * @param {HTMLAnchorElement} element
- * @param {HTMLAnchorElement} prevElement
+ * @param {HTMLAnchorElement | null} prevElement
  * @param {Record<string, {
  *  element: HTMLElement, items: ReturnType<typeof getDiffs>
  * }>} cache
- * @param {ReturnType<typeof getCommits>[0]} info
+ * @param {Exclude<ReturnType<typeof getCommits>, undefined>[0]} [info]
  */
 function addClickHandler(path, element, prevElement, cache, info) {
   if (!path || element.classList.contains("github-file-diff-link")) return;
 
-  const existingContent = element.closest("[data-hpc=true]").parentElement;
+  const existingContent = /** @type {HTMLElement} */ (
+    /** @type {HTMLElement} */ (element.closest("[data-hpc=true]"))
+      .parentElement
+  );
   const existingTitle = document.title;
 
   const parts = new URL(element.href).pathname.split("/");
@@ -222,7 +228,7 @@ function addClickHandler(path, element, prevElement, cache, info) {
   const repo = parts[2];
   const message = element.innerText;
   const hash = getHash(element);
-  const prevHash = getHash(prevElement);
+  const prevHash = prevElement ? getHash(prevElement) : null;
   const key = `${owner}/${repo}@${hash}:${path}`;
 
   element.addEventListener("click", async (e) => {
@@ -249,9 +255,9 @@ function addClickHandler(path, element, prevElement, cache, info) {
     };
     loadDiffs();
     const containerElement = document.createElement("div");
-    const breadcrumb = document
-      .querySelector("[aria-label=Breadcrumbs]")
-      .cloneNode(true);
+    const breadcrumb = /** @type {HTMLElement} */ (
+      document.querySelector("[aria-label=Breadcrumbs]")
+    ).cloneNode(true);
     containerElement.className = existingContent.className;
     containerElement.classList.add("github-file-diff");
     containerElement.appendChild(getCommitElement(element, info));
@@ -287,26 +293,32 @@ function addClickHandler(path, element, prevElement, cache, info) {
  * @param {string} owner
  * @param {string} repo
  * @param {string} hash
- * @param {string} prevHash
+ * @param {string | null} prevHash
  * @param {string} path
  */
 async function* getDiffs(owner, repo, hash, prevHash, path) {
   for await (const p of getTreeFiles(owner, repo, hash, path)) {
-    let curr,
-      prev = "";
-    if (prevHash) {
+    /** @type {string} */
+    let curr;
+    /** @type {string} */
+    let prev;
+    try {
       [curr, prev] = await Promise.all([
         getBlob(owner, repo, hash, p),
-        getBlob(owner, repo, prevHash, p).catch((_) => ""),
+        prevHash ? getBlob(owner, repo, prevHash, p).catch(() => "") : "",
       ]);
-    } else curr = await getBlob(owner, repo, hash, p);
+    } catch {
+      continue;
+    }
     const diffElement = document.createElement("div");
     const diff = Diff.createPatch(p, prev, curr);
     const diff2htmlUi = new Diff2HtmlUI(diffElement, diff, {
       drawFileList: false,
     });
     diff2htmlUi.draw();
-    const fileName = diffElement.querySelector(".d2h-file-name");
+    const fileName = /** @type {HTMLElement} */ (
+      diffElement.querySelector(".d2h-file-name")
+    );
     const fileLink = document.createElement("a");
     fileLink.className = fileName.className;
     fileLink.classList.add("Link--primary");
@@ -324,7 +336,9 @@ async function main() {
     /** @type {Record<string, any>} */
     const cache = {};
     const commits = getCommits(getData(document));
-    const elements = document.querySelectorAll("[data-testid=commit-row-item]");
+    const elements = /** @type {NodeListOf<HTMLElement>} */ (
+      document.querySelectorAll("[data-testid=commit-row-item]")
+    );
     for (const [i, element] of elements.entries()) {
       const prevElement = elements[i + 1];
       if (!prevElement) continue;

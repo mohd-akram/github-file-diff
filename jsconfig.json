@@ -3,7 +3,15 @@
     "checkJs": true,
     "target": "ES2022",
     "strict": true,
-    "strictNullChecks": false
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
   },
-  "exclude": ["dist"]
+  "exclude": ["dist", "src/vendor", "src/vendor.js"],
 }

@@ -4,6 +4,7 @@
   "description": "Browser extension to view diffs of specific files on GitHub",
   "main": "index.js",
   "scripts": {
+    "typecheck": "tsc -p jsconfig.json",
     "clean": "rm -rf src/vendor src/vendor.css src/vendor.js dist",
     "vendor": "cat src/vendor.sh | tr -d '\r' | sh",
     "build": "npm run vendor && mkdir -p dist/ext && cp src/main.js src/vendor.css src/vendor.js src/manifest.json src/icon.png dist/ext",
@@ -28,6 +29,8 @@
   },
   "homepage": "https://github.com/mohd-akram/github-file-diff#readme",
   "devDependencies": {
+    "@types/diff": "^7.0.1",
+    "typescript": "^5.8.2",
     "web-ext": "^8.4.0"
   },
   "dependencies": {
