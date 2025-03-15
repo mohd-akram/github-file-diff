@@ -4,11 +4,27 @@
  * @param {string} repo
  * @param {string} hash
  * @param {string} path
+ * @param {string} type
+ */
+function getPathURL(owner, repo, hash, path, type) {
+  path = path
+    .split("/")
+    .map((p) => encodeURIComponent(p))
+    .join("/");
+  return `https://github.com/${owner}/${repo}/${type}/${hash}/${path}`;
+}
+
+/**
+ *
+ * @param {string} owner
+ * @param {string} repo
+ * @param {string} hash
+ * @param {string} path
  */
 async function* getTreeFiles(owner, repo, hash, path) {
   const [treeRes, treeCommitInfoRes] = await Promise.all(
     ["tree", "tree-commit-info"].map((t) =>
-      fetch(`https://github.com/${owner}/${repo}/${t}/${hash}/${path}`, {
+      fetch(getPathURL(owner, repo, hash, path, t), {
         headers: { Accept: "application/json" },
       })
     )
@@ -53,7 +69,9 @@ async function* getTreeFiles(owner, repo, hash, path) {
 async function getBlob(owner, repo, hash, path) {
   const text = await (
     await fetch(
-      `https://github.com/${owner}/${repo}/blob/${hash}/${path}?plain=1`,
+      `${getPathURL(owner, repo, hash, path, "blob")}?${new URLSearchParams({
+        plain: "1",
+      })}`,
       { headers: { Accept: "application/json" } }
     )
   ).text();
@@ -290,6 +308,13 @@ async function* getDiffs(owner, repo, hash, prevHash, path) {
       drawFileList: false,
     });
     diff2htmlUi.draw();
+    const fileName = diffElement.querySelector(".d2h-file-name");
+    const fileLink = document.createElement("a");
+    fileLink.className = fileName.className;
+    fileLink.classList.add("Link--primary");
+    fileLink.href = getPathURL(owner, repo, hash, p, "blob");
+    fileLink.textContent = fileName.textContent;
+    fileName.replaceWith(fileLink);
     yield diffElement;
   }
 }
