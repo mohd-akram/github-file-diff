@@ -97,11 +97,9 @@ function getData(doc) {
    * @type {{
    *  payload: {
    *    blob: { rawLines: string[] },
-   *    commitGroups: {
-   *      commits: { oid: string, bodyMessageHtml: string }[] }[]
-   *    }
+   *    commitGroups: { commits: { oid: string, bodyMessageHtml: string }[] }[]
    *  }
-   * }
+   * }}
    */
   const data = JSON.parse(
     doc.querySelector('[data-target="react-app.embeddedData"]')?.textContent ??
