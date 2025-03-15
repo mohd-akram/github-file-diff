@@ -74,7 +74,7 @@ async function getBlob(owner, repo, hash, path) {
   if (!res.ok) throw new Error("Failed to get blob");
   const text = await res.text();
   try {
-    /** @type {Exclude<ReturnType<typeof getData>, undefined>} */
+    /** @type {NonNullable<ReturnType<typeof getData>>} */
     const data = JSON.parse(text);
     return data.payload.blob.rawLines.join("\n");
   } catch (e) {
@@ -135,7 +135,7 @@ function getCommitLinks(element) {
 /**
  *
  * @param {HTMLElement} linkElement
- * @param {Exclude<ReturnType<typeof getCommits>, undefined>[0]} [info]
+ * @param {NonNullable<ReturnType<typeof getCommits>>[0]} [info]
  */
 function getCommitElement(linkElement, info) {
   const commit = /** @type {HTMLElement} */ (
@@ -213,7 +213,7 @@ function getHash(element) {
  * @param {Record<string, {
  *  element: HTMLElement, items: ReturnType<typeof getDiffs>
  * }>} cache
- * @param {Exclude<ReturnType<typeof getCommits>, undefined>[0]} [info]
+ * @param {NonNullable<ReturnType<typeof getCommits>>[0]} [info]
  */
 function addClickHandler(path, element, prevElement, cache, info) {
   if (!path || element.classList.contains("github-file-diff-link")) return;
