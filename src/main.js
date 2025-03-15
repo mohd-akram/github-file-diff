@@ -20,7 +20,7 @@ async function* getTreeFiles(owner, repo, hash, path) {
   /**
    * @type {{
    *  payload: {
-   *    tree: {  items: { contentType: 'file' | 'directory', name: string }[] }
+   *    tree: { items: { contentType: 'file' | 'directory', name: string }[] }
    *  }
    * }}
    */
@@ -75,12 +75,21 @@ async function getBlob(owner, repo, hash, path) {
  * @param {Document} doc
  */
 function getData(doc) {
-  return /** @type {{ payload: { blob: { rawLines: string[] }, commitGroups: { commits: { oid: string, bodyMessageHtml: string }[] }[] }}} */ (
-    JSON.parse(
-      doc.querySelector('[data-target="react-app.embeddedData"]')
-        ?.textContent ?? null
-    )
+  /**
+   * @type {{
+   *  payload: {
+   *    blob: { rawLines: string[] },
+   *    commitGroups: {
+   *      commits: { oid: string, bodyMessageHtml: string }[] }[]
+   *    }
+   *  }
+   * }
+   */
+  const data = JSON.parse(
+    doc.querySelector('[data-target="react-app.embeddedData"]')?.textContent ??
+      null
   );
+  return data;
 }
 
 /**
@@ -181,7 +190,9 @@ function getHash(element) {
  * @param {string} path
  * @param {HTMLAnchorElement} element
  * @param {HTMLAnchorElement} prevElement
- * @param {Record<string, { element: HTMLElement, items: ReturnType<typeof getDiffs> }>} cache
+ * @param {Record<string, {
+ *  element: HTMLElement, items: ReturnType<typeof getDiffs>
+ * }>} cache
  * @param {ReturnType<typeof getCommits>[0]} info
  */
 function addClickHandler(path, element, prevElement, cache, info) {
