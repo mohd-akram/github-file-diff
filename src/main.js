@@ -76,12 +76,16 @@ async function getBlob(owner, repo, hash, path) {
   try {
     /** @type {NonNullable<ReturnType<typeof getData>>} */
     const data = JSON.parse(text);
-    return data.payload.blob.rawLines.join("\n");
+    return /** @type {NonNullable<typeof data.payload.blob>} */ (
+      data.payload.blob
+    ).rawLines.join("\n");
   } catch (e) {
     const doc = new DOMParser().parseFromString(text, "text/html");
     const data = getData(doc);
     if (!data) throw new Error("Failed to get blob");
-    return data.payload.blob.rawLines.join("\n");
+    return /** @type {NonNullable<typeof data.payload.blob>} */ (
+      data.payload.blob
+    ).rawLines.join("\n");
   }
 }
 
@@ -98,8 +102,8 @@ function getData(doc) {
     /**
      * @type {{
      *  payload: {
-     *    blob: { rawLines: string[] },
-     *    commitGroups: { commits: { oid: string, bodyMessageHtml: string }[] }[]
+     *    blob?: { rawLines: string[] },
+     *    commitGroups?: { commits: { oid: string, bodyMessageHtml: string }[] }[]
      *  }
      * }}
      */
@@ -115,7 +119,7 @@ function getData(doc) {
  * @param {ReturnType<typeof getData>} data
  */
 function getCommits(data) {
-  return data?.payload.commitGroups.flatMap((g) => g.commits);
+  return data?.payload.commitGroups?.flatMap((g) => g.commits);
 }
 
 /**
@@ -382,6 +386,7 @@ async function main() {
   observer.observe(document.body, {
     attributeFilter: ["class"],
     childList: true,
+    subtree: true,
   });
 }
 
