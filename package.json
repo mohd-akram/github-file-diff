@@ -29,9 +29,9 @@
   },
   "homepage": "https://github.com/mohd-akram/github-file-diff#readme",
   "devDependencies": {
-    "@types/diff": "^7.0.1",
-    "typescript": "^5.8.2",
-    "web-ext": "^8.4.0"
+    "@types/diff": "^7.0.2",
+    "typescript": "^5.8.3",
+    "web-ext": "^8.6.0"
   },
   "dependencies": {
     "diff": "^7.0.0",
