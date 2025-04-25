@@ -44,22 +44,19 @@ cat $dir/github.css $dir/diff2html.min.css - > src/vendor.css <<CSS
 .d2h-code-linenumber {
   border: unset;
   background: unset;
-  color: var(--color-fg-subtle);
+  color: unset;
 }
-.d2h-code-linenumber.blob-code-addition {
-  color: var(--color-diff-blob-addition-num-text);
-}
-.d2h-code-linenumber.blob-code-deletion {
-  color: var(--color-diff-blob-deletion-num-text);
+.d2h-code-linenumber.blob-code-context {
+  color: var(--fgColor-muted);
 }
 .d2h-code-line-ctn {
   vertical-align: unset;
 }
 .d2h-code-line ins {
-  background-color: var(--color-diff-blob-addition-word-bg);
+  background-color: var(--diffBlob-additionWord-bgColor);
 }
 .d2h-code-line del {
-  background-color: var(--color-diff-blob-deletion-word-bg);
+  background-color: var(--diffBlob-deletionWord-bgColor);
 }
 
 .hljs {
