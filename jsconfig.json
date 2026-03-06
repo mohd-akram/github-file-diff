@@ -11,7 +11,7 @@
     "noImplicitReturns": true,
     "noPropertyAccessFromIndexSignature": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true,
+    "noUnusedParameters": true
   },
-  "exclude": ["dist", "src/vendor", "src/vendor.js"],
+  "exclude": ["dist", "src/vendor", "src/vendor.js"]
 }

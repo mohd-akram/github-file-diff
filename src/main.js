@@ -26,8 +26,8 @@ async function* getTreeFiles(owner, repo, hash, path) {
     ["tree", "tree-commit-info"].map((t) =>
       fetch(getPathURL(owner, repo, hash, path, t), {
         headers: { Accept: "application/json" },
-      })
-    )
+      }),
+    ),
   );
   if (!treeRes.ok || !treeCommitInfoRes.ok)
     throw new Error("Failed to get tree");
@@ -69,7 +69,7 @@ async function getBlob(owner, repo, hash, path) {
     `${getPathURL(owner, repo, hash, path, "blob")}?${new URLSearchParams({
       plain: "1",
     })}`,
-    { headers: { Accept: "application/json" } }
+    { headers: { Accept: "application/json" } },
   );
   if (!res.ok) throw new Error("Failed to get blob");
   const text = await res.text();
@@ -95,7 +95,7 @@ async function getBlob(owner, repo, hash, path) {
  */
 function getData(doc) {
   const text = doc.querySelector(
-    '[data-target="react-app.embeddedData"]'
+    '[data-target="react-app.embeddedData"]',
   )?.textContent;
 
   if (text) {
@@ -253,7 +253,7 @@ function addClickHandler(path, element, prevElement, cache, info) {
         pending.push(
           diffs.items.next().then((d) => {
             if (d.value) diffs.element.appendChild(d.value);
-          })
+          }),
         );
       await Promise.all(pending);
       loading = false;
@@ -272,7 +272,7 @@ function addClickHandler(path, element, prevElement, cache, info) {
     existingContent.style.display = "none";
     const title = `${message} · ${owner}/${repo}@${hash.slice(
       0,
-      7
+      7,
     )}:${path} · GitHub`;
     document.title = title;
     history.pushState({ key }, title, element.href);
