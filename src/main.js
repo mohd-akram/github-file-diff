@@ -33,14 +33,16 @@ async function* getTreeFiles(owner, repo, hash, path) {
     throw new Error("Failed to get tree");
   /**
    * @type {{
-   *  payload: {
+   *  payload: { codeViewTreeRoute: {
    *    tree: { items: { contentType: 'file' | 'directory', name: string }[] }
-   *  }
+   *  } }
    * }}
    */
   const {
     payload: {
-      tree: { items },
+      codeViewTreeRoute: {
+        tree: { items },
+      },
     },
   } = await treeRes.json();
   /** @type {Record<string, { oid: string }>} */
@@ -65,26 +67,23 @@ async function* getTreeFiles(owner, repo, hash, path) {
  * @param {string} path
  */
 async function getBlob(owner, repo, hash, path) {
-  const res = await fetch(
-    `${getPathURL(owner, repo, hash, path, "blob")}?${new URLSearchParams({
-      plain: "1",
-    })}`,
-    { headers: { Accept: "application/json" } },
-  );
+  const res = await fetch(`${getPathURL(owner, repo, hash, path, "_styled")}`, {
+    headers: { Accept: "application/json" },
+  });
   if (!res.ok) throw new Error("Failed to get blob");
   const text = await res.text();
   try {
     /** @type {NonNullable<ReturnType<typeof getData>>} */
     const data = JSON.parse(text);
-    return /** @type {NonNullable<typeof data.payload.blob>} */ (
-      data.payload.blob
+    return /** @type {NonNullable<typeof data.payload['codeViewBlobLayoutRoute.StyledBlob']>} */ (
+      data.payload["codeViewBlobLayoutRoute.StyledBlob"]
     ).rawLines.join("\n");
   } catch (e) {
     const doc = new DOMParser().parseFromString(text, "text/html");
     const data = getData(doc);
     if (!data) throw new Error("Failed to get blob");
-    return /** @type {NonNullable<typeof data.payload.blob>} */ (
-      data.payload.blob
+    return /** @type {NonNullable<typeof data.payload['codeViewBlobLayoutRoute.StyledBlob']>} */ (
+      data.payload["codeViewBlobLayoutRoute.StyledBlob"]
     ).rawLines.join("\n");
   }
 }
@@ -102,7 +101,7 @@ function getData(doc) {
     /**
      * @type {{
      *  payload: {
-     *    blob?: { rawLines: string[] },
+     *    'codeViewBlobLayoutRoute.StyledBlob'?: { rawLines: string[] }
      *    commitGroups?: { commits: { oid: string, bodyMessageHtml: string }[] }[]
      *  }
      * }}
